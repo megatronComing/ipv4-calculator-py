@@ -1,7 +1,8 @@
 import sys
 import json
 import pandas as pd
-
+import argparse
+VERSION = '1.1'
 #IPv4 address calculator
 #Autor: Jared, contact yuhuafeng@gmail.com
 
@@ -131,7 +132,7 @@ class IPV4Calc():
             return
         for addr, attrib in self.addrs.items():
             if printBinary:
-                print('{}/{} {}/{}'.format(addr,attrib[STR_SBNMASK_LEN], attrib[STR_ADDR_BIN],attrib[STR_SBNMASK_LEN]))
+                print('{} {}/{}'.format(addr, attrib[STR_ADDR_BIN],attrib[STR_SBNMASK_LEN]))
                 print('\tsubnet mask\t\t{} {}'.format(attrib[STR_SBMASK_DEC], attrib[STR_SBMASK_BIN]))
                 print('\tnetwork addr\t\t{}/{} {}/{}'.format(attrib[STR_NETADDR_DEC], attrib[STR_SBNMASK_LEN], attrib[STR_NETADDR_BIN], attrib[STR_SBNMASK_LEN]))
                 print('\tfirst usable addr\t{}/{} {}/{}'.format(attrib[STR_FIRST_HOST_ADDR_DEC], attrib[STR_SBNMASK_LEN], attrib[STR_FIRST_HOST_ADDR_BIN], attrib[STR_SBNMASK_LEN]))
@@ -140,7 +141,7 @@ class IPV4Calc():
                 print('\ttotal host count\t{}'.format(attrib[STR_HOST_COUNT]))
                 print('\tusable host count\t{}'.format(attrib[STR_HOST_COUNT_AVAIL]))
             else:
-                print(addr + '/' + str(attrib[STR_SBNMASK_LEN]))
+                print(addr)
                 print('\tsubnet mask\t\t{}'.format(attrib[STR_SBMASK_DEC]))
                 print('\tnetwork addr\t\t{}/{}'.format(attrib[STR_NETADDR_DEC], attrib[STR_SBNMASK_LEN]))
                 print('\tfirst usable addr\t{}/{}'.format(attrib[STR_FIRST_HOST_ADDR_DEC], attrib[STR_SBNMASK_LEN]))
@@ -203,27 +204,54 @@ class IPV4Calc():
             print('FAILED to write to file{}'.format(fileName))
 
 def about():
-    print('-'*20 + 'IPv4 address calculator' + '-'*20)
+    print('-'*20 + 'IPv4 address calculator ' + VERSION + '-'*20)
     print('any suggestion is welcome, contact yuhuafeng@gmail.com SVP.')
     print('-'*63)
 def usage():
-    print('Usage: {} IP_ADDRESS1/SubnetMaskLength IP_ADDRESS2/SubnetMaskLength'.format(sys.argv[0]))
-    print('\tExample: {} 172.28.208.200/25 196.200.32.150/26 184.20.65.20/29'.format(sys.argv[0]))
+    print('Usage: {} IP_ADDRESS1/SubnetMaskLength,IP_ADDRESS2/SubnetMaskLength -output FILENAME'.format(sys.argv[0]))
+    print('\t-ip')
+    print('\t\tspecify ip addresses, seperated by commas, no space.')
+    print('\t\tip address should contain a subnet mask length: xxx.xxx.xxx.xxx/xx')
+    print('\t-output')
+    print('\t\tOptional. If given, the results will be save to the file spacified.')
+    print('\t\tif the extesion of the filename is not .xlsx, then .xlsx will be appended.')
+    print('\tExample: {} -ip 172.28.208.200/25,196.200.32.150/26 -output save.xlsx'.format(sys.argv[0]))
+    print(' ')
     print('For windows users, the command should be:')
-    print('\tpython {} IP_ADDRESS1/SubnetMaskLength IP_ADDRESS2/SubnetMaskLength'.format(sys.argv[0]))
+    print('\tpython {} IP_ADDRESS1/SubnetMaskLength,IP_ADDRESS2/SubnetMaskLength -output FILENAME'.format(sys.argv[0]))
     print('MAKE SURE the directory where python locates is set in the system environment variable PATH')
+
+def getArguments():
+    parser = argparse.ArgumentParser(description='test')
+    parser.add_argument('-ip')
+    parser.add_argument('-output')
+    args = vars(parser.parse_args())
+    if not args['output'] is None:
+        if args['output'].split('.')[-1].lower() != 'xlsx':
+            args['output'] = args['output'] + '.xlsx'
+    return args
+        
+
 if __name__ == '__main__':
     about()
     if len(sys.argv) == 1:
         usage()
         exit(-1)
     #addr = ['192.168.0. 50 / 24', '172.28.208.200/25','196.200.32.150/26','192.168.50.112/27','184.20.65.20/29']
-    outputFileName = 'output.xlsx'
-    addr = sys.argv[1:]
+    args = getArguments()
+    
+    #addr = sys.argv[1:]
+    if args['ip'] is None:
+        usage()
+        exit(-1)
+    addr = args['ip'].split(',')
     ip = IPV4Calc(addr)
     #print(json.dumps(ip.addrs, indent=4))
     ip.printResult()
-    ip.export2excel(outputFileName, 'decimal and binary', True)
-    print('-'*20)
-    print('The above information saved to file {}'.format(outputFileName))
+    if not args['output'] is None:
+        outputFileName = args['output']
+        ip.export2excel(outputFileName, 'decimal and binary', True)
+        print('-'*20)
+        print('The above information saved to file {}'.format(outputFileName))
     exit(0)
+    
