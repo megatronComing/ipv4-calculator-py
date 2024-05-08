@@ -1,10 +1,9 @@
 import sys
-import json
-import pandas as pd
+#import json
 import argparse
-VERSION = '1.1'
+VERSION = '1.2'
 #IPv4 address calculator
-#Autor: Jared, contact yuhuafeng@gmail.com
+#Autor: Jared, contact hfyu.hzcn@gmail.com
 
 STR_SBNMASK_LEN = 'subnet mask length'
 STR_ADDR_BIN = 'binary address'
@@ -22,16 +21,17 @@ STR_HOST_COUNT = 'total host count'
 STR_HOST_COUNT_AVAIL = 'available host count'
 
 #convert a binary string to a decimal number
-def bin2dec(strBinary):
+def bin2dec(strBinary:str) -> int:
     return int(strBinary,2)
 
 #convert a decimal number to a binary string
-def dec2bin(strDecimal, length=8):
+def dec2bin(strDecimal:str, length=8) -> str:
     str = bin(strDecimal)[2:]  #omit the leading '0b'
     return '0'*(length-len(str)) + str
 
 class IPV4Calc():
     def __init__(self, ipv4address):
+        # the parameter ipv4address can be a string or a list of strings
         if isinstance(ipv4address, str):
             listAddr = [ipv4address]
         elif isinstance(ipv4address, list):
@@ -44,7 +44,7 @@ class IPV4Calc():
         self.doCalculation()
         
     
-    def initAddrs(self, listAddr):
+    def initAddrs(self, listAddr:list) -> bool:
         self.addrs = {}
         for addr in listAddr:
             addr = addr.replace(' ', '')
@@ -57,7 +57,7 @@ class IPV4Calc():
             self.addrs[addr][STR_ADDR_BIN] = self.ipv4Dec2Bin(ip)
         return True
 
-    def doCalculation(self):
+    def doCalculation(self) -> None:
         for addr, attrib in self.addrs.items():
             sbnLen = attrib[STR_SBNMASK_LEN]
             self.addrs[addr][STR_SBMASK_BIN] = self.getSubnetMaskBin(sbnLen)
@@ -73,7 +73,7 @@ class IPV4Calc():
             self.addrs[addr][STR_HOST_COUNT] = self.getHostCount(sbnLen)
             self.addrs[addr][STR_HOST_COUNT_AVAIL] = self.addrs[addr][STR_HOST_COUNT] - 2
 
-    def validateAddrIpv4(self, strIP, intLen):
+    def validateAddrIpv4(self, strIP:str, intLen:int) -> bool:
         #print(strIP, intLen)
         if intLen <=0 or intLen >= 32:
             return False
@@ -84,49 +84,49 @@ class IPV4Calc():
 
         return True
     
-    def ipv4Bin2Dec(self, strBin):
+    def ipv4Bin2Dec(self, strBin:str) -> str:
         addrDec = []
         for num in strBin.split('.'):
             addrDec.append(str(bin2dec(num)))
         return '.'.join(addrDec)
 
-    def ipv4Dec2Bin(self, strDec):
+    def ipv4Dec2Bin(self, strDec:str) -> str:
         addrBin = []
         for num in strDec.split('.'):
             addrBin.append(dec2bin(int(num)))
         return '.'.join(addrBin)
 
     # convert '11110000110000111010110001011110' to '11110000.11000011.10101100.01011110'
-    def splitBinAddr(self, strBin):
+    def splitBinAddr(self, strBin:str) -> str:
         addrBin = [strBin[:8], strBin[8:16], strBin[16:24], strBin[24:]]
         return '.'.join(addrBin)
 
-    def getSubnetMaskBin(self, intSubnetLen):
+    def getSubnetMaskBin(self, intSubnetLen:int) -> str:
         bin = '1'*intSubnetLen + '0'*(32-intSubnetLen)
         return self.splitBinAddr(bin)
 
-    def getSubnetAddrBin(self, addrBin, sbnLen):
+    def getSubnetAddrBin(self, addrBin:str, sbnLen:int) -> str:
         str = ''.join(addrBin.split('.'))
         addr = str[:sbnLen] + '0'*(32-sbnLen)
         return self.splitBinAddr(addr)
     
-    def getFirstAssignableAddrBin(self, addrBin, sbnLen):
+    def getFirstAssignableAddrBin(self, addrBin:str, sbnLen:int) -> str:
         str = ''.join(addrBin.split('.'))
         addr = str[:sbnLen] + '0'*(32-sbnLen-1) + '1'
         return self.splitBinAddr(addr)
-    def getLastAssignableAddrBin(self, addrBin, sbnLen):
+    def getLastAssignableAddrBin(self, addrBin:str, sbnLen:int) -> str:
         str = ''.join(addrBin.split('.'))
         addr = str[:sbnLen] + '1'*(32-sbnLen-1) + '0'
         return self.splitBinAddr(addr)
-    def getBroadcastAddrBin(self, addrBin, sbnLen):
+    def getBroadcastAddrBin(self, addrBin:str, sbnLen:int) -> str:
         str = ''.join(addrBin.split('.'))
         addr = str[:sbnLen] + '1'*(32-sbnLen)
         return self.splitBinAddr(addr)
     
-    def getHostCount(self, sbnLen):
+    def getHostCount(self, sbnLen:int) -> int:
         return bin2dec('1'*(32-sbnLen)) + 1
 
-    def printResult(self, printBinary=True):
+    def printResult(self, printBinary=True) -> None:
         if not self.validAddress:
             print('ERROR: invalid ip address')
             return
@@ -152,7 +152,7 @@ class IPV4Calc():
 
     
 
-    def export2excel(self, fileName, sheetName, outputBinary = False):
+    def export2excel(self, fileName:str, sheetName:str, outputBinary = False) -> bool:
         colAddr = []
         colSbnMask = []
         colNetAddr = []
@@ -187,27 +187,53 @@ class IPV4Calc():
             colBroadcastAddr.append(attrib[STR_BROADCAST_ADDR_DEC] + '/' + str(attrib[STR_SBNMASK_LEN]))
             if outputBinary:
                 colBroadcastAddr.append(attrib[STR_BROADCAST_ADDR_BIN] + '/' + str(attrib[STR_SBNMASK_LEN]))
-        
+        try:
+            import pandas as pd
+        except:
+            print('This script requires module pandas for saving to an excel file, please install it by running: pip install pandas.')
+            exit(-1)
+        try:
+            import openpyxl
+        except:
+            print('This script requires module openpyxl for saving to an excel file, please install it by running: pip install openpyxl.')
+            exit(-1)
+        try:
+            import xlsxwriter
+        except:
+            print('This script requires module xlsxwriter for saving to an excel file, please install it by running: pip install xlsxwriter.')
+            exit(-1)
         df = pd.DataFrame(data={'Address':colAddr, 'SubnetMask':colSbnMask, 'NetworkAddr':colNetAddr, 'HostCount':colHostCount, 'UsableHostCount':colHostCountUsable,
         'FirstUsableHostAddr':colFirstHost, 'LastUsableHostAddr':colLastHost, 'BroadcatAddr':colBroadcastAddr})
         #print(df)
-        try:
-            writer = pd.ExcelWriter(fileName)
-            df.to_excel(writer, index=False, sheet_name = sheetName)
+        # try:
+        #     writer = pd.ExcelWriter(fileName)
+        #     df.to_excel(writer, index=False, sheet_name = sheetName)
             
-            for column in df:
-                columnWidth = max(df[column].astype(str).map(len).max(), len(column))
-                colIndex = df.columns.get_loc(column)
-                writer.sheets[sheetName].set_column(colIndex, colIndex, columnWidth)
-            writer.close()
-        except:
-            print('FAILED to write to file{}'.format(fileName))
-
-def about():
+        #     for column in df:
+        #         columnWidth = max(df[column].astype(str).map(len).max(), len(column))
+        #         colIndex = df.columns.get_loc(column)
+        #         writer.sheets[sheetName].set_column(colIndex, colIndex, columnWidth)
+        #     writer.close()
+        #     return True
+        # except:
+        #     print('FAILED to write to file {}'.format(fileName))
+        #     return False
+        writer = pd.ExcelWriter(fileName)
+        df.to_excel(writer, index=False, sheet_name = sheetName)
+        
+        for column in df:
+            columnWidth = max(df[column].astype(str).map(len).max(), len(column))
+            colIndex = df.columns.get_loc(column)
+            writer.sheets[sheetName].set_column(colIndex, colIndex, columnWidth)
+            
+        writer.close()
+        return True
+        
+def about() -> None:
     print('-'*20 + 'IPv4 address calculator ' + VERSION + '-'*20)
-    print('any suggestion is welcome, contact yuhuafeng@gmail.com SVP.')
+    print('any suggestion is welcome, contact hfyu.hzcn@gmail.com SVP.')
     print('-'*63)
-def usage():
+def usage() -> None:
     print('Usage: {} IP_ADDRESS1/SubnetMaskLength,IP_ADDRESS2/SubnetMaskLength -output FILENAME'.format(sys.argv[0]))
     print('\t-ip')
     print('\t\tspecify ip addresses, seperated by commas, no space.')
@@ -221,7 +247,7 @@ def usage():
     print('\tpython {} IP_ADDRESS1/SubnetMaskLength,IP_ADDRESS2/SubnetMaskLength -output FILENAME'.format(sys.argv[0]))
     print('MAKE SURE the directory where python locates is set in the system environment variable PATH')
 
-def getArguments():
+def getArguments() -> dict:
     parser = argparse.ArgumentParser(description='test')
     parser.add_argument('-ip')
     parser.add_argument('-output')
@@ -249,9 +275,11 @@ if __name__ == '__main__':
     #print(json.dumps(ip.addrs, indent=4))
     ip.printResult()
     if not args['output'] is None:
-        outputFileName = args['output']
-        ip.export2excel(outputFileName, 'decimal and binary', True)
-        print('-'*20)
-        print('The above information saved to file {}'.format(outputFileName))
+        # outputFileName = args['output']
+        import os
+        outputFileName = os.path.join(os.path.dirname(sys.argv[0]), args['output'])
+        if ip.export2excel(outputFileName, 'decimal and binary', True):
+            print('-'*20)
+            print('The above information saved to file {}'.format(outputFileName))
     exit(0)
     
